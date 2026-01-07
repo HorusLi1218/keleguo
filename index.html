@@ -190,40 +190,57 @@
                             </div>
                         </section>
 
-                        <section class="mb-8">
-                            <p class="section-header uppercase text-orange-500 font-bold mb-4">五、 簽署聲明與法律約定</p>
-                            <div class="glass-card p-6 border border-white/10 space-y-5">
-                                <button type="button" onclick="handleToggleLegal()" class="w-full flex justify-between items-center bg-white/5 hover:bg-white/10 p-4 rounded-2xl border border-white/5 transition-all group focus:outline-none">
-                                    <span class="text-sm font-bold text-slate-300">閱覽完整美容服務定型化契約條款</span>
-                                    <i id="legal-chevron" class="fas fa-chevron-down text-orange-500 transition-transform duration-300"></i>
-                                </button>
+<section class="mb-8">
+    <p class="section-header uppercase text-orange-500 font-bold mb-4">五、 簽署聲明與法律約定</p>
+    <div class="glass-card p-6 border border-white/10 space-y-5">
+        <button type="button" onclick="handleToggleLegal()" class="w-full flex justify-between items-center bg-white/5 hover:bg-white/10 p-4 rounded-2xl border border-white/5 transition-all group focus:outline-none">
+            <span class="text-sm font-bold text-slate-300">閱覽完整寵物美容定型化契約條款</span>
+            <i id="legal-chevron" class="fas fa-chevron-down text-orange-500 transition-transform duration-300"></i>
+        </button>
 
-                                <div id="legal-drawer" style="max-height: 0px;" class="overflow-hidden transition-all duration-500 ease-in-out">
-                                    <div class="p-5 bg-black/40 rounded-2xl text-[13px] leading-relaxed text-slate-400 space-y-5 border border-white/5 mb-4 shadow-inner">
-                                        <section><h4 class="text-orange-500 font-bold mb-1">第一條 (契約目的)</h4><p>本服務為犬貓美容，不涉及醫療行為。乙方環境維持安全、通風、清潔。</p></section>
-                                        <section><h4 class="text-orange-500 font-bold mb-1">第五條 (健康告知)</h4><p>甲方應誠實告知寵物病史與攻擊性。若因隱瞞導致意外，乙方不負損害賠償責任。</p></section>
-                                        <section class="bg-white/5 p-3 rounded-xl border border-white/10">
-                                            <h4 class="text-white font-bold mb-2 flex items-center gap-2"><i class="fas fa-exclamation-circle text-orange-500"></i> 退費與逾時規範</h4>
-                                            <ul class="space-y-2 text-slate-300">
-                                                <li class="flex gap-2"><span class="text-orange-500">•</span><p>包月終止按<span class="text-white">「已使用次數 × 單次原價」</span>扣除後退費，<span class="text-orange-400">不額外收取手續費</span>。</p></li>
-                                                <li class="flex gap-2"><span class="text-orange-500">•</span><p>逾時 30 分鐘以上，依照價目表公告之 <span class="text-white">安親費</span> 額外收費。</p></li>
-                                            </ul>
-                                        </section>
-                                        <section><h4 class="text-orange-500 font-bold mb-1">第十五條 (履約保障)</h4><p>預收費用累計金額在台幣一萬元以下，依法免提供履約保障。</p></section>
-                                        <p class="text-[10px] opacity-30 text-center pt-2 border-t border-white/5">其餘細節依行政院農委會定型化契約範本辦理</p>
-                                    </div>
-                                </div>
-                                <div class="text-[12px] text-slate-500 px-2 space-y-2">
-                                    <p>● 經甲乙雙方合意約定，由甲方即時閱覽理解本契約內容並簽署。</p>
-                                    <p>● 本人已確認預計接回時間與服務金額無誤。</p>
-                                </div>
+        <div id="legal-drawer" style="max-height: 0px;" class="overflow-hidden transition-all duration-500 ease-in-out">
+            <div class="p-5 bg-black/40 rounded-2xl text-[13px] leading-relaxed text-slate-400 space-y-5 border border-white/5 mb-4 shadow-inner">
+                
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第一條 (契約目的)</h4>
+                    <p>本服務為犬貓美容，不涉及醫療行為。乙方環境維持安全、通風、清潔。</p>
+                </section>
 
-                                <label class="flex items-center gap-4 p-4 bg-orange-500/10 rounded-2xl cursor-pointer border border-orange-500/20 hover:bg-orange-500/20 transition-all group">
-                                    <input type="checkbox" id="legal_agree" class="w-6 h-6 rounded-lg accent-orange-500 cursor-pointer" required>
-                                    <span class="text-sm font-black text-white group-hover:text-orange-400">我已詳閱並同意以上契約條款內容 *</span>
-                                </label>
-                            </div>
-                        </section>
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第五條 (健康告知)</h4>
+                    <p>甲方應誠實告知寵物病史與攻擊性。若因隱瞞導致意外，乙方不負損害賠償責任。</p>
+                </section>
+
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第九條 (退費規定)</h4>
+                    <p>包月服務終止時，<span class="text-orange-400 font-bold">預收總額扣除「已使用次數 × 單次原價」</span>後退還餘額，乙方不額外收取解約手續費。</p>
+                </section>
+
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第十二條 (逾時接回)</h4>
+                    <p>於約定時間逾時 30 分鐘以上，依照價目表公告之 安親費 <span class="text-orange-400 font-bold">額外收費</span>。</p>
+                </section>
+
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第十五條 (履約保障)</h4>
+                    <p>預收費用累計金額新台幣一萬元以下，依法免提供履約保障。</p>
+                </section>
+
+                <p class="text-[10px] opacity-30 text-center pt-2 border-t border-white/5">其餘細節依行政院農委會定型化契約範本辦理</p>
+            </div>
+        </div>
+
+        <div class="text-[12px] text-slate-500 px-2 space-y-2 border-l-2 border-orange-500/30 ml-1">
+            <p>● 經甲乙雙方合意約定，由甲方即時閱覽理解本契約內容並簽署。</p>
+            <p>● 本人已確認預計接回時間與服務金額無誤，並同意上述條款。</p>
+        </div>
+
+        <label class="flex items-center gap-4 p-4 bg-orange-500/10 rounded-2xl cursor-pointer border border-orange-500/20 hover:bg-orange-500/20 transition-all group">
+            <input type="checkbox" id="legal_agree" class="w-6 h-6 rounded-lg accent-orange-500 cursor-pointer" required>
+            <span class="text-sm font-black text-white group-hover:text-orange-400">我已詳閱並同意以上契約條款內容 *</span>
+        </label>
+    </div>
+</section>
 
                         <section>
                             <p class="section-header uppercase">六、 甲方電子簽署</p>
