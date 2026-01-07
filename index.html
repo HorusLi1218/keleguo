@@ -240,6 +240,10 @@
                                     <i class="fas fa-eraser"></i> 重新簽署 / 清除簽名
                                 </button>
                             </div>
+                            <div class="text-right px-4 mb-4">
+    <span class="text-[10px] opacity-50 uppercase tracking-widest">簽署日期：</span>
+    <span id="display-today" class="text-sm font-bold text-orange-500"></span>
+</div>
                         </section>
                         <button type="button" onclick="handleSave()" id="btn" class="btn-submit w-full bg-orange-500 hover:bg-orange-600 text-white py-8 rounded-[2rem] font-black text-xl shadow-xl transition-all active:scale-[0.98]">確認提交約定單</button>
                     </form>
@@ -419,6 +423,11 @@ async function editRecord(idx) {
         }
 
         function init() {
+
+            // 在 init 函式中加入
+const today = new Date();
+const dateString = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+document.getElementById('display-today').innerText = dateString;
 
             // 在 init() 函數內加入
 const phoneInput = document.getElementById('phone');
@@ -607,11 +616,22 @@ phoneInput.addEventListener('blur', function() {
         }
 function renderAdminList(list) {
     const tbody = document.getElementById('adminList');
-    tbody.innerHTML = list.map((i, idx) => `
+    tbody.innerHTML = list.map((i, idx) => {
+        // 解析並格式化日期時間
+        const signedTime = i.created_at ? new Date(i.created_at).toLocaleString('zh-TW', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }) : '無日期';
+
+        return `
         <tr class="hover:bg-white/5 transition-colors">
             <td class="px-8 py-8 font-bold text-sm">
                 ${i.pet_name}<br>
-                <span class="text-orange-500 text-[10px] opacity-70">${i.owner_name}</span>
+                <span class="text-orange-500 text-[10px] opacity-70">${i.owner_name}</span><br>
+                <span class="text-slate-500 text-[8px] font-normal ">簽署：${signedTime}</span>
             </td>
             <td class="px-8 py-8"><span class="text-xs opacity-60">${i.services}</span></td>
             <td class="px-8 py-8 text-center text-sm font-bold text-blue-400">${i.pickup_time}</td>
@@ -626,7 +646,8 @@ function renderAdminList(list) {
                     <button onclick="deleteRecord('${i.id}', '${i.pet_name}')" class="text-red-400 font-bold border border-red-400/30 px-3 py-2 rounded-lg text-[10px] hover:bg-red-400/10 transition-all">刪除</button>
                 </div>
             </td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
 }
         function logoutAdmin() { sessionStorage.removeItem('isAdmin'); location.reload(); }
         function filterRecords(val) {
@@ -634,45 +655,72 @@ function renderAdminList(list) {
             const f = allRecords.filter(i => i.pet_name.toLowerCase().includes(s) || i.owner_name.toLowerCase().includes(s));
             renderAdminList(f);
         }
-        function showDetail(idx) {
-            const i = allRecords[idx];
-            document.getElementById('detailContent').innerHTML = `
-                <div class="space-y-6 text-sm text-slate-800 pb-10">
-                    <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                        <p class="text-orange-600 font-black border-b border-orange-100 pb-2 mb-4 uppercase text-xs tracking-widest">一、 飼主完整資料</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
-                            <p><b>飼主姓名：</b> ${i.owner_name}</p><p><b>身分證號：</b> ${i.id_number}</p>
-                            <p><b>聯絡手機：</b> ${i.phone}</p><p><b>電子郵件：</b> ${i.email}</p>
-                            <p class="sm:col-span-2"><b>通訊地址：</b> ${i.address}</p>
-                            <p><b>緊急聯絡人：</b> ${i.emergency_name}</p><p><b>緊急電話：</b> ${i.emergency_tel || '未填寫'}</p>
-                            <p class="sm:col-span-2"><b>指定就醫：</b> ${i.clinic || '無'}</p>
-                        </div>
-                    </div>
-                    <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                        <p class="text-orange-600 font-black border-b border-orange-100 pb-2 mb-4 uppercase text-xs tracking-widest">二、 寵物完整資料</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
-                            <p><b>寵物名字：</b> ${i.pet_name}</p><p><b>品種花色：</b> ${i.breed} / ${i.color}</p>
-                            <p><b>性別：</b> ${i.sex}</p><p><b>結紮：</b> ${i.fix}</p>
-                            <p class="sm:col-span-2"><b>晶片號碼：</b> ${i.chip_no}</p>
-                            <p class="sm:col-span-2"><b>性格特徵：</b> 親人(${i.p_human}) · 親狗(${i.p_dog}) · 具攻擊性(${i.p_atk})</p>
-                            <p class="sm:col-span-2"><b>過往病史：</b> ${i.p_ill === '有' ? `<span class="text-red-500 font-bold">${i.ill_detail}</span>` : '無'}</p>
-                        </div>
-                    </div>
-                    <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100">
-                        <p class="text-orange-600 font-black border-b border-orange-200 pb-2 mb-4 uppercase text-xs tracking-widest">三、 本次服務約定</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
-                            <p class="sm:col-span-2"><b>服務項目：</b> <span class="text-orange-700 font-bold">${i.services}</span></p>
-                            <p><b>預計接回：</b> <span class="text-blue-600 font-bold">${i.pickup_time}</span></p>
-                            <p><b>本次費用：</b> <span class="text-orange-600 font-black">NT$ ${Number(i.price).toLocaleString()}</span></p>
-                        </div>
-                    </div>
-                    <div class="text-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-white">
-                        <p class="text-[10px] text-slate-400 mb-2 uppercase tracking-widest">甲方簽署樣本</p>
-                        <img src="${i.signature_data}" class="max-h-48 mx-auto" alt="顧客簽名">
-                    </div>
-                </div>`;
-            document.getElementById('detailModal').style.display = 'flex';
-        }
+function showDetail(idx) {
+    const i = allRecords[idx];
+    
+    // 1. 格式化簽署日期與時間 (包含 年/月/日 時:分:秒)
+    const fullTime = i.created_at ? new Date(i.created_at).toLocaleString('zh-TW', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }) : '無記錄';
+
+    document.getElementById('detailContent').innerHTML = `
+        <div class="space-y-6 text-sm text-slate-800 pb-10">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-100 p-4 rounded-2xl border border-slate-200 gap-2">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">系統紀錄編號</span>
+                    <span class="text-xs font-mono text-slate-600">ID: ${i.id}</span>
+                </div>
+                <div class="text-left sm:text-right">
+                    <span class="text-[10px] font-bold text-orange-400 uppercase tracking-widest block">數位簽署完成時間</span>
+                    <span class="text-sm font-black text-slate-700"><i class="far fa-calendar-check mr-1 text-orange-500"></i> ${fullTime}</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <p class="text-orange-600 font-black border-b border-orange-100 pb-2 mb-4 uppercase text-xs tracking-widest">一、 飼主完整資料</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <p><b>飼主姓名：</b> ${i.owner_name}</p><p><b>身分證號：</b> ${i.id_number}</p>
+                    <p><b>聯絡手機：</b> ${i.phone}</p><p><b>電子郵件：</b> ${i.email}</p>
+                    <p class="sm:col-span-2"><b>通訊地址：</b> ${i.address}</p>
+                    <p><b>緊急聯絡人：</b> ${i.emergency_name}</p><p><b>緊急電話：</b> ${i.emergency_tel || '未填寫'}</p>
+                    <p class="sm:col-span-2"><b>指定就醫：</b> ${i.clinic || '無'}</p>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <p class="text-orange-600 font-black border-b border-orange-100 pb-2 mb-4 uppercase text-xs tracking-widest">二、 寵物完整資料</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <p><b>寵物名字：</b> ${i.pet_name}</p><p><b>品種花色：</b> ${i.breed} / ${i.color}</p>
+                    <p><b>性別：</b> ${i.sex}</p><p><b>結紮：</b> ${i.fix}</p>
+                    <p class="sm:col-span-2"><b>晶片號碼：</b> ${i.chip_no}</p>
+                    <p class="sm:col-span-2"><b>性格特徵：</b> 親人(${i.p_human}) · 親狗(${i.p_dog}) · 具攻擊性(${i.p_atk})</p>
+                    <p class="sm:col-span-2"><b>過往病史：</b> ${i.p_ill === '有' ? `<span class="text-red-500 font-bold">${i.ill_detail}</span>` : '無'}</p>
+                </div>
+            </div>
+
+            <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100">
+                <p class="text-orange-600 font-black border-b border-orange-200 pb-2 mb-4 uppercase text-xs tracking-widest">三、 本次服務約定</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <p class="sm:col-span-2"><b>服務項目：</b> <span class="text-orange-700 font-bold">${i.services}</span></p>
+                    <p><b>預計接回：</b> <span class="text-blue-600 font-bold">${i.pickup_time}</span></p>
+                    <p><b>本次費用：</b> <span class="text-orange-600 font-black">NT$ ${Number(i.price).toLocaleString()}</span></p>
+                </div>
+            </div>
+
+            <div class="text-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-white">
+                <p class="text-[10px] text-slate-400 mb-2 uppercase tracking-widest">甲方簽署樣本</p>
+                <img src="${i.signature_data}" class="max-h-48 mx-auto" alt="顧客簽名">
+                <p class="text-[9px] text-slate-400 mt-2 italic">此電子簽名於系統時間 ${fullTime} 紀錄存檔</p>
+            </div>
+        </div>`;
+    document.getElementById('detailModal').style.display = 'flex';
+}
         window.onload = init;
     </script>
 </body>
