@@ -298,6 +298,69 @@
 
     <script>
 
+async function fetchHistoryByPhone(phone) {
+    if (!/^09\d{8}$/.test(phone)) return; // 格式不對就不查
+
+    try {
+        const { data, error } = await client
+            .from('contracts')
+            .select('*')
+            .eq('phone', phone)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            const history = data[0];
+            if (confirm(`檢測到您的歷史紀錄（寵物：${history.pet_name}），是否自動帶入基本資料？`)) {
+                autoFillData(history);
+            }
+        }
+    } catch (err) {
+        console.error("查詢歷史紀錄失敗:", err.message);
+    }
+}
+
+function autoFillData(i) {
+    // 填寫飼主資料
+    document.getElementById('owner_name').value = i.owner_name || '';
+    document.getElementById('email').value = i.email || '';
+    document.getElementById('id_number').value = i.id_number || '';
+    document.getElementById('address').value = i.address || '';
+    document.getElementById('emergency_name').value = i.emergency_name || '';
+    document.getElementById('emergency_tel').value = i.emergency_tel || '';
+    document.getElementById('clinic').value = i.clinic || '';
+
+    // 填寫寵物資料
+    document.getElementById('pet_name').value = i.pet_name || '';
+    document.getElementById('breed').value = i.breed || '';
+    document.getElementById('color').value = i.color || '';
+    document.getElementById('chip_no').value = i.chip_no || '';
+    
+    // 處理 Radio Buttons (性別、結紮、病史等)
+    const setRadio = (name, value) => {
+        const rb = document.querySelector(`input[name="${name}"][value="${value}"]`);
+        if (rb) rb.checked = true;
+    };
+    
+    setRadio('sex', i.sex);
+    setRadio('fix', i.fix);
+    setRadio('p_human', i.p_human);
+    setRadio('p_dog', i.p_dog);
+    setRadio('p_atk', i.p_atk);
+    setRadio('p_ill', i.p_ill);
+    
+    if (i.p_ill === '有') {
+        toggleIllDetail(true);
+        document.getElementById('ill_detail').value = i.ill_detail || '';
+    }
+
+    // 觸發一次欄位驗證顏色轉換
+    document.querySelectorAll('.form-input').forEach(el => {
+        if (el.onblur) el.onblur();
+    });
+}
         // --- 刪除功能 ---
 async function deleteRecord(id, petName) {
     if (!confirm(`確定要刪除寵物「${petName}」的簽署紀錄嗎？\n此動作無法還原！`)) return;
@@ -356,6 +419,13 @@ async function editRecord(idx) {
         }
 
         function init() {
+
+            // 在 init() 函數內加入
+const phoneInput = document.getElementById('phone');
+phoneInput.addEventListener('blur', function() {
+    fetchHistoryByPhone(this.value.trim());
+});
+
             canvas = document.getElementById('fs-canvas');
             ctx = canvas.getContext('2d');
             document.querySelectorAll('.num-only').forEach(el => { el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); }); });
