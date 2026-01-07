@@ -523,7 +523,7 @@ async function handleSave() {
     const priceInput = document.getElementById('price');
     const priceVal = parseInt(priceInput.value);
     
-    // 取得畫布
+    // 取得原始簽名畫布
     const signatureCanvas = document.getElementById('fs-canvas');
 
     // 1. 基本驗證
@@ -540,8 +540,26 @@ async function handleSave() {
     btn.disabled = true; 
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>正在提交...';
 
-    // 取得簽名 Base64
-    const originalSig = signatureCanvas.toDataURL("image/png");
+    // --- 【關鍵優化：壓縮簽名圖片】 ---
+    // 建立一個緩衝畫布來調整大小
+    const compressCanvas = document.createElement('canvas');
+    const cCtx = compressCanvas.getContext('2d');
+    
+    // 固定寬度為 400px，高度依比例縮放，這能大幅減少數據量
+    const maxWidth = 400;
+    const scale = maxWidth / signatureCanvas.width;
+    compressCanvas.width = maxWidth;
+    compressCanvas.height = signatureCanvas.height * scale;
+
+    // 填寫白色背景（必做：否則 JPEG 會變黑色背景）
+    cCtx.fillStyle = "#FFFFFF";
+    cCtx.fillRect(0, 0, compressCanvas.width, compressCanvas.height);
+    
+    // 繪製壓縮後的圖像
+    cCtx.drawImage(signatureCanvas, 0, 0, compressCanvas.width, compressCanvas.height);
+    
+    // 輸出 JPEG，品質設定為 0.5 (體積會非常小，且簽名依然清晰)
+    const finalSigData = compressCanvas.toDataURL("image/jpeg", 0.5);
 
     const data = {
         owner_name: document.getElementById('owner_name').value.trim(),
@@ -566,7 +584,7 @@ async function handleSave() {
         services: Array.from(document.querySelectorAll('input[name="service"]:checked')).map(el => el.value).join(', ') || "未勾選",
         price: priceVal,
         pickup_time: document.getElementById('pickup_time').value || "LINE通知",
-        signature_data: originalSig,
+        signature_data: finalSigData, // 使用壓縮過的資料存入資料庫
         created_at: new Date().toISOString()
     };
 
@@ -575,20 +593,10 @@ async function handleSave() {
         const { error: supabaseError } = await client.from('contracts').insert([data]);
         if (supabaseError) throw supabaseError;
 
-        // 第二步：寄送 EmailJS
-        // 為了確保圖片能顯示，將簽名背景轉為白色（EmailJS 處理透明 PNG 有時會變黑）
-        const mailCanvas = document.createElement('canvas');
-        const mCtx = mailCanvas.getContext('2d');
-        mailCanvas.width = signatureCanvas.width;
-        mailCanvas.height = signatureCanvas.height;
-        mCtx.fillStyle = "#FFFFFF";
-        mCtx.fillRect(0, 0, mailCanvas.width, mailCanvas.height);
-        mCtx.drawImage(signatureCanvas, 0, 0);
-        const mailSig = mailCanvas.toDataURL("image/jpeg", 0.6); // 使用 jpeg 並壓縮品質
-
+        // 第二步：寄送 EmailJS (使用同樣壓縮過的 finalSigData)
         await emailjs.send("service_qwect9i", "template_mrp0x8n", { 
             ...data, 
-            signature_data: mailSig, 
+            signature_data: finalSigData, 
             price: Number(data.price).toLocaleString(),
             created_at: new Date().toLocaleString() 
         });
@@ -597,6 +605,7 @@ async function handleSave() {
         location.reload();
     } catch (err) {
         console.error("提交錯誤:", err);
+        // 如果錯誤訊息包含 "Variables size limit"，代表圖片還是太大了
         alert("儲存或寄送失敗: " + (err.text || err.message));
         btn.disabled = false;
         btn.innerText = "確認提交約定單";
