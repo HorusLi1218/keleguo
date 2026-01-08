@@ -8,16 +8,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 強制賦予寫入權限
+      contents: write  # 確保有權限寫入 gh-pages 分支
     steps:
       - uses: actions/checkout@v4
 
       - name: Replace Key
-        run: sed -i "s/__BREVO_KEY__/${{ secrets.BREVO_API_KEY }}/g" index.html
+        # 注意：run 必須跟 name 對齊，且指令前後建議檢查是否有正確替換
+        run: sed -i 's/__BREVO_KEY__/${{ secrets.BREVO_API_KEY }}/g' index.html
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
-          force_orphan: true  # 強制覆蓋分支，避免 Git 衝突
+          force_orphan: true
