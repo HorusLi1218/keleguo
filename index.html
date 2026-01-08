@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>可樂果寵物生活館 | 定型化契約簽署系統</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .animate-pulse-slow { animation: pulse-slow 2s infinite; }
+        @keyframes pulse-slow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.98); } }
+        .sig-wrapper { background: #f1f5f9 !important; border: 3px dashed #f97316 !important; transition: 0.3s; }
+        .signature-hint { color: #f97316 !important; flex-direction: column; gap: 8px; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        :root { --brand-orange: #f97316; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: #0F172A; color: #F1F5F9; min-height: 100vh; overscroll-behavior-y: none; }
+        .serif-title { font-family: 'Noto Serif TC', serif; }
+        .glass-card { backdrop-filter: blur(25px); background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 2rem; }
+        .input-group { display: flex; flex-direction: column; width: 100%; position: relative; }
+        .form-input { width: 100%; padding: 1rem 1.2rem; border-radius: 1rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); color: #FFF; outline: none; transition: 0.3s; font-size: 16px; }
+        .form-input:focus { border-color: var(--brand-orange); box-shadow: 0 0 15px rgba(249, 115, 22, 0.2); }
+        input[type="time"] { color-scheme: dark; cursor: pointer; }
+        .input-valid { border-color: #22c55e !important; }
+        .input-invalid { border-color: #ef4444 !important; }
+        .error-msg { font-size: 10px; color: #ef4444; height: 14px; margin-top: 4px; padding-left: 8px; opacity: 0; transition: 0.2s; }
+        .input-invalid + .error-msg { opacity: 1; }
+        .pill-group input { display: none; }
+        .pill-item { cursor: pointer; padding: 0.6rem 1rem; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: 0.3s; font-size: 0.85rem; color: rgba(255, 255, 255, 0.4); text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+        .pill-group input:checked + .pill-item { background: rgba(249, 115, 22, 0.2); border-color: #f97316; color: #f97316; font-weight: bold; }
+        #ill_detail_container { max-height: 0; overflow: hidden; transition: 0.5s ease; }
+        #ill_detail_container.open { max-height: 200px; margin-top: 1rem; }
+        .sig-wrapper { position: relative; background: #FFF; border-radius: 1.5rem; overflow: hidden; border: 2px dashed rgba(249, 115, 22, 0.2); cursor: pointer; }
+        .signature-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; color: rgba(0,0,0,0.1); font-weight: 900; font-size: 2rem; letter-spacing: 0.2rem; }
+        #sig-preview-img { width: 100%; height: 100%; object-fit: contain; display: none; position: relative; z-index: 10; }
+        #sig-fullscreen-modal { display: none; position: fixed; inset: 0; background: #ffffff; z-index: 9999; flex-direction: column; }
+        .fs-canvas-container { flex: 1; position: relative; background: #f8fafc; overflow: hidden; }
+        #fs-canvas { width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+        .fs-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); color: #e2e8f0; font-size: 4rem; font-weight: 900; pointer-events: none; white-space: nowrap; opacity: 0.5; }
+        #adminView, #detailModal, .hidden { display: none; }
+        .section-header { font-size: 0.8rem; font-weight: 900; letter-spacing: 0.15em; color: var(--brand-orange); border-left: 4px solid var(--brand-orange); padding-left: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
+        .btn-submit { animation: pulse-orange 2s infinite; }
+        @keyframes pulse-orange { 0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); } 70% { box-shadow: 0 0 0 12px rgba(249, 115, 22, 0); } 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); } }
+        @media (max-width: 480px) { .section-header { font-size: 0.75rem; } .form-input { padding: 0.8rem 1rem; } }
+    </style>
+</head>
+<body class="antialiased pb-10">
+
+    <nav class="fixed top-0 w-full z-50 px-4 py-4">
+        <div class="max-w-5xl mx-auto flex justify-between items-center glass-card px-6 py-3 shadow-2xl border border-white/5">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-paw text-orange-500"></i>
+                <span class="text-sm md:text-lg font-black serif-title text-white tracking-wider">可樂果寵物生活館|定型化契約簽署</span>
+            </div>
+            <button onclick="checkAdmin()" class="text-[10px] font-bold opacity-30 hover:opacity-100 tracking-widest uppercase text-white">© 2026</button>
+        </div>
+    </nav>
+
+    <main id="clientView" class="pt-24 px-4">
+        <div class="max-w-xl mx-auto">
+            <div class="glass-card shadow-2xl overflow-hidden border border-white/10">
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-8 text-center text-white relative">
+                    <h1 class="text-2xl md:text-3xl font-black serif-title tracking-widest relative">寵物美容契約簽署</h1>
+                    <p class="text-[9px] font-bold mt-2 tracking-[0.4em] uppercase opacity-70 relative">Digital Grooming Record</p>
+                </div>
+
+                <div class="p-6 md:p-10 space-y-10">
+                    <form id="contract-form" onsubmit="return false;" class="space-y-10">
+                        <section>
+                            <p class="section-header uppercase">一、 飼主基本資料</p>
+                            <div class="space-y-2">
+                                <div class="input-group"><input type="text" id="owner_name" class="form-input" placeholder="飼主姓名 *" required></div>
+                                <div class="input-group">
+                                    <input type="email" id="email" class="form-input" placeholder="電子信箱(寄送契約副本用) *" onblur="validateInput(this, 'email')" required>
+                                    <div class="error-msg">請檢查信箱格式</div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="input-group">
+                                        <input type="text" id="id_number" class="form-input" placeholder="身分證字號 *" oninput="this.value = this.value.toUpperCase()" onblur="validateInput(this, 'id')" required>
+                                        <div class="error-msg">格式錯誤</div>
+                                    </div>
+                                    <div class="input-group">
+                                        <input type="tel" id="phone" class="form-input num-only" placeholder="聯絡手機 *" onblur="validateInput(this, 'mobile')" required>
+                                        <div class="error-msg">格式應為 09xxxxxxxx</div>
+                                    </div>
+                                </div>
+                                <div class="input-group"><input type="text" id="address" class="form-input" placeholder="通訊地址 *" required></div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="input-group"><input type="text" id="emergency_name" class="form-input" placeholder="緊急聯絡人 *" required></div>
+                                    <div class="input-group"><input type="tel" id="emergency_tel" class="form-input num-only" placeholder="緊急電話" onblur="validateInput(this, 'phone')"><div class="error-msg">格式不符</div></div>
+                                </div>
+                                <input type="text" id="clinic" class="form-input" placeholder="指定就醫醫院(若無則送交特約醫院)">
+                            </div>
+                        </section>
+
+                        <section>
+                            <p class="section-header uppercase">二、 寵物詳細資料</p>
+                            <div class="grid grid-cols-3 gap-2 mb-4">
+                                <input type="text" id="pet_name" class="form-input" placeholder="寵物名字 *" required>
+                                <input type="text" id="breed" class="form-input" placeholder="品種">
+                                <input type="text" id="color" class="form-input" placeholder="花色">
+                            </div>
+
+                            <div class="bg-white/5 p-6 rounded-[1.5rem] border border-white/10 space-y-6">
+                                <div class="space-y-3 text-white">
+                                    <span class="text-[10px] font-bold opacity-40 uppercase px-2">晶片號碼 *</span>
+                                    <div class="input-group">
+                                        <input type="tel" id="chip_no" class="form-input !text-orange-500 font-bold" placeholder="請輸入10或15碼數字" onblur="validateInput(this, 'chip')">
+                                        <div class="error-msg">請輸入正確的10或15碼數字</div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 pill-group">
+                                        <label>
+                                            <input type="radio" name="chip_status" id="has_chip_unknown" onchange="toggleChipStatus('unknown')">
+                                            <span class="pill-item w-full !py-3">有晶片(號碼不詳)</span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="chip_status" id="has_no_chip" onchange="toggleChipStatus('none')">
+                                            <span class="pill-item w-full !py-3">無晶片</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-white/5 pill-group text-white gap-4">
+                                    <div class="flex items-center gap-3"><span class="text-[10px] font-bold opacity-40">性別</span><label><input type="radio" name="sex" value="公" required><span class="pill-item">公</span></label><label><input type="radio" name="sex" value="母"><span class="pill-item">母</span></label></div>
+                                    <div class="flex items-center gap-3"><span class="text-[10px] font-bold opacity-40">結紮</span><label><input type="radio" name="fix" value="是" required><span class="pill-item">是</span></label><label><input type="radio" name="fix" value="否"><span class="pill-item">否</span></label></div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 p-6 bg-white/5 rounded-[2rem] border border-white/5 space-y-4 text-white text-sm">
+                                <div class="flex justify-between items-center pill-group"><span>親人</span><div class="flex gap-2"><label><input type="radio" name="p_human" value="是" required><span class="pill-item !px-5">是</span></label><label><input type="radio" name="p_human" value="否"><span class="pill-item !px-5">否</span></label></div></div>
+                                <div class="flex justify-between items-center pill-group"><span>親狗</span><div class="flex gap-2"><label><input type="radio" name="p_dog" value="是" required><span class="pill-item !px-5">是</span></label><label><input type="radio" name="p_dog" value="否"><span class="pill-item !px-5">否</span></label></div></div>
+                                <div class="flex justify-between items-center pill-group"><span>具攻擊性</span><div class="flex gap-2"><label><input type="radio" name="p_atk" value="是" required><span class="pill-item !px-5">是</span></label><label><input type="radio" name="p_atk" value="否"><span class="pill-item !px-5">否</span></label></div></div>
+                                <div class="border-t border-white/10 pt-4">
+                                    <div class="flex justify-between items-center pill-group mb-3"><span class="font-bold text-orange-400">過往病史 *</span><div class="flex gap-2"><label><input type="radio" name="p_ill" value="無" onchange="toggleIllDetail(false)" required><span class="pill-item px-5">無</span></label><label><input type="radio" name="p_ill" value="有" onchange="toggleIllDetail(true)"><span class="pill-item px-5">有</span></label></div></div>
+                                    <div id="ill_detail_container"><textarea id="ill_detail" class="form-input h-24" placeholder="請詳細說明病史情況"></textarea></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section>
+                            <p class="section-header uppercase">三、 本次服務內容</p>
+                            <div class="pill-group grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
+                                <label><input type="checkbox" name="service" value="包月洗澡"><span class="pill-item w-full !py-4">包月洗澡</span></label>
+                                <label><input type="checkbox" name="service" value="基礎洗澡"><span class="pill-item w-full !py-4">基礎洗澡</span></label>
+                                <label><input type="checkbox" name="service" value="精緻美容"><span class="pill-item w-full !py-4">精緻美容</span></label>
+                                <label><input type="checkbox" name="service" value="局部修剪"><span class="pill-item w-full !py-4">局部修剪</span></label>
+                                <label><input type="checkbox" name="service" value="寵物安親"><span class="pill-item w-full !py-4">寵物安親</span></label>
+                                <label><input type="checkbox" name="service" value="其他" id="other_trig"><span class="pill-item w-full !py-4 text-center">其他項目</span></label>
+                            </div>
+                            <input type="text" id="other_val" class="form-input hidden mb-6" placeholder="註明其他項目...">
+
+                            <div class="space-y-4">
+                                <div class="p-5 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-2">
+                                    <label class="text-[11px] font-bold text-orange-400 uppercase tracking-widest flex items-center gap-2">
+                                        <i class="fas fa-clock"></i> 預計接回時間
+                                    </label>
+                                    <input type="time" id="pickup_time" class="form-input !bg-slate-950/80 !border-orange-500/30 text-2xl font-black text-orange-500 py-4">
+                                    <p class="text-[10px] text-orange-300 font-bold mt-1 px-1">
+                                        <i class="fas fa-info-circle mr-1"></i>逾時 30 分鐘以上，依照價目表公告之 安親費 額外收費。
+                                    </p>
+                                </div>
+
+                                <div class="p-5 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-2">
+                                    <label class="text-[11px] font-bold text-orange-400 uppercase tracking-widest flex items-center gap-2">
+                                        <i class="fas fa-coins"></i> 本次服務金額 *
+                                    </label>
+                                    <div class="flex items-center gap-3 bg-slate-950/80 border border-orange-500/30 rounded-xl px-4 py-2 focus-within:border-orange-500 transition-all">
+                                        <span class="text-orange-500 font-bold text-lg">NT$</span>
+                                        <input id="price" type="tel" value="0" onclick="if(this.value=='0')this.value=''" onblur="if(this.value=='')this.value='0'" class="bg-transparent text-3xl font-black text-orange-500 outline-none w-full text-right num-only" required>
+                                    </div>
+                                    <p class="text-[10px] text-orange-300 font-bold mt-1 px-1">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>此金額為基礎報價，若現場發現嚴重打結、寄生蟲等狀況，將另行告知加價。
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section>
+                            <p class="section-header uppercase">四、 乙方資訊</p>
+                            <div class="bg-white/5 p-6 rounded-[1.5rem] border border-white/10 text-[13px] text-slate-300 space-y-3">
+                                <p><b class="text-orange-500">負責人：</b>邱駿侖 | <b>電話：</b>06-358 2451</p>
+                                <p><b class="text-orange-500">地址：</b>台南市中西區湖美街70巷16號</p>
+                                <p><b class="text-orange-500">營業時間：</b>週二至週日 10:00-19:00 (每週一店休)</p>
+                                <div class="mt-4 pt-4 border-t border-white/10">
+                                    <p class="text-[11px] font-bold text-orange-400 uppercase mb-1">特約緊急送醫場所</p>
+                                    <p>我的動物醫院 (臺南市中西區和緯路五段235號)</p>
+                                </div>
+                            </div>
+                        </section>
+
+<section class="mb-8">
+    <p class="section-header uppercase text-orange-500 font-bold mb-4">五、 簽署聲明與法律約定</p>
+    <div class="glass-card p-6 border border-white/10 space-y-5">
+        <button type="button" onclick="handleToggleLegal()" class="w-full flex justify-between items-center bg-white/5 hover:bg-white/10 p-4 rounded-2xl border border-white/5 transition-all group focus:outline-none">
+            <span class="text-sm font-bold text-slate-300">閱覽完整寵物美容定型化契約條款</span>
+            <i id="legal-chevron" class="fas fa-chevron-down text-orange-500 transition-transform duration-300"></i>
+        </button>
+
+        <div id="legal-drawer" style="max-height: 0px;" class="overflow-hidden transition-all duration-500 ease-in-out">
+            <div class="p-5 bg-black/40 rounded-2xl text-[13px] leading-relaxed text-slate-400 space-y-5 border border-white/5 mb-4 shadow-inner">
+                
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第一條 (契約目的)</h4>
+                    <p>本服務為犬貓美容，不涉及醫療行為。乙方環境維持安全、通風、清潔。</p>
+                </section>
+
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第五條 (健康告知)</h4>
+                    <p>甲方應誠實告知寵物病史與攻擊性。若因隱瞞導致意外，乙方不負損害賠償責任。</p>
+                </section>
+
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第九條 (退費規定)</h4>
+                    <p>包月服務終止時，<span class="text-orange-400 font-bold">預收總額扣除「已使用次數 × 單次原價」</span>後退還餘額，乙方不額外收取解約手續費。</p>
+                </section>
+
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第十二條 (逾時接回)</h4>
+                    <p>於約定時間逾時 30 分鐘以上，依照價目表公告之 安親費 <span class="text-orange-400 font-bold">額外收費</span>。</p>
+                </section>
+
+                <section>
+                    <h4 class="text-orange-500 font-bold mb-1">第十五條 (履約保障)</h4>
+                    <p>預收費用累計金額新台幣一萬元以下，依法免提供履約保障。</p>
+                </section>
+
+                <p class="text-[10px] opacity-30 text-center pt-2 border-t border-white/5">其餘細節依行政院農委會定型化契約範本辦理</p>
+            </div>
+        </div>
+
+        <div class="text-[12px] text-slate-500 px-2 space-y-2 border-l-2 border-orange-500/30 ml-1">
+            <p>● 經甲乙雙方合意約定，由甲方即時閱覽理解本契約內容並簽署。</p>
+            <p>● 本人已確認預計接回時間與服務金額無誤，並同意上述條款。</p>
+        </div>
+
+        <label class="flex items-center gap-4 p-4 bg-orange-500/10 rounded-2xl cursor-pointer border border-orange-500/20 hover:bg-orange-500/20 transition-all group">
+            <input type="checkbox" id="legal_agree" class="w-6 h-6 rounded-lg accent-orange-500 cursor-pointer" required>
+            <span class="text-sm font-black text-white group-hover:text-orange-400">我已詳閱並同意以上契約條款內容 *</span>
+        </label>
+    </div>
+</section>
+
+                        <section>
+                            <p class="section-header uppercase">六、 甲方電子簽署</p>
+                            <div onclick="openFsSig()" class="sig-wrapper h-64 shadow-inner">
+                                <div class="signature-hint animate-pulse-slow" id="sig-hint-text">
+                                    <i class="fas fa-file-signature text-4xl mb-2"></i>
+                                    <span class="text-xl font-black">點擊此處開啟簽名</span>
+                                    <p class="text-xs opacity-70 font-normal">Please Click Here to Sign</p>
+                                </div>
+                                <img id="sig-preview-img" alt="簽名預覽">
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="button" onclick="clearSig()" class="mt-4 px-6 py-3 bg-red-600/80 hover:bg-red-600 text-white rounded-xl text-sm font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-lg">
+                                    <i class="fas fa-eraser"></i> 重新簽署 / 清除簽名
+                                </button>
+                            </div>
+                            <div class="text-right px-4 mb-4">
+    <span class="text-[10px] opacity-50 uppercase tracking-widest">簽署日期：</span>
+    <span id="display-today" class="text-sm font-bold text-orange-500"></span>
+</div>
+                        </section>
+                        <button type="button" onclick="handleSave()" id="btn" class="btn-submit w-full bg-orange-500 hover:bg-orange-600 text-white py-8 rounded-[2rem] font-black text-xl shadow-xl transition-all active:scale-[0.98]">確認提交約定單</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="sig-fullscreen-modal">
+        <div class="flex justify-between items-center p-4 bg-slate-900 text-white">
+            <button onclick="closeFsSig(false)" class="text-sm opacity-70">取消</button>
+            <span class="text-sm font-bold tracking-widest">電子簽署區域</span>
+            <button onclick="closeFsSig(true)" class="bg-orange-500 px-6 py-2 rounded-full text-sm font-bold">完成</button>
+        </div>
+        <div class="fs-canvas-container">
+            <div class="fs-hint">請在此處簽名</div>
+            <canvas id="fs-canvas"></canvas>
+        </div>
+        <div class="p-4 bg-slate-100 flex justify-center">
+            <button onclick="clearFsCanvas()" class="text-slate-400 text-xs uppercase"><i class="fas fa-redo mr-2"></i>清除重寫</button>
+        </div>
+    </div>
+
+    <main id="adminView" class="pt-28 px-4 pb-20">
+        <div class="max-w-6xl mx-auto glass-card overflow-hidden shadow-2xl">
+            <div class="p-6 md:p-8 flex flex-col md:flex-row justify-between items-center bg-white/5 border-b border-white/5 text-white gap-4">
+                <h3 class="font-black text-xl md:text-2xl text-orange-500 tracking-tighter">數據管理系統</h3>
+                <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                    <input type="text" id="adminSearch" oninput="filterRecords(this.value)" placeholder="搜尋寵物或飼主..." class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 md:py-2 text-sm outline-none focus:border-orange-500 w-full md:w-64 text-white">
+                    <button onclick="logoutAdmin()" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 md:py-2 rounded-xl text-xs font-bold w-full md:w-auto transition-colors">登出系統</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto text-white">
+                <table class="w-full text-left min-w-[1000px]">
+                    <thead class="bg-white/5 text-[10px] font-bold opacity-40 uppercase">
+                        <tr>
+                            <th class="px-8 py-6">寵物 / 飼主</th>
+                            <th class="px-8 py-6">服務項目</th>
+                            <th class="px-8 py-6 text-center">預計接回</th>
+                            <th class="px-8 py-6 text-center">本次金額</th>
+                            <th class="px-8 py-6 text-center">簽名</th>
+                            <th class="px-8 py-6 text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminList" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-3xl z-[120] flex items-center justify-center p-2 md:p-4" onclick="this.style.display='none'">
+        <div class="bg-white text-slate-900 w-full max-w-3xl rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+            <div id="detailContent" class="p-5 md:p-8 overflow-y-auto max-h-[80vh]"></div>
+        </div>
+    </div>
+
+    <script>
+
+async function fetchHistoryByPhone(phone) {
+    if (!/^09\d{8}$/.test(phone)) return; // 格式不對就不查
+
+    try {
+        const { data, error } = await client
+            .from('contracts')
+            .select('*')
+            .eq('phone', phone)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            const history = data[0];
+            if (confirm(`檢測到您的歷史紀錄（寵物：${history.pet_name}），是否自動帶入基本資料？`)) {
+                autoFillData(history);
+            }
+        }
+    } catch (err) {
+        console.error("查詢歷史紀錄失敗:", err.message);
+    }
+}
+
+function autoFillData(i) {
+    // 填寫飼主資料
+    document.getElementById('owner_name').value = i.owner_name || '';
+    document.getElementById('email').value = i.email || '';
+    document.getElementById('id_number').value = i.id_number || '';
+    document.getElementById('address').value = i.address || '';
+    document.getElementById('emergency_name').value = i.emergency_name || '';
+    document.getElementById('emergency_tel').value = i.emergency_tel || '';
+    document.getElementById('clinic').value = i.clinic || '';
+
+    // 填寫寵物資料
+    document.getElementById('pet_name').value = i.pet_name || '';
+    document.getElementById('breed').value = i.breed || '';
+    document.getElementById('color').value = i.color || '';
+    document.getElementById('chip_no').value = i.chip_no || '';
+    
+    // 處理 Radio Buttons (性別、結紮、病史等)
+    const setRadio = (name, value) => {
+        const rb = document.querySelector(`input[name="${name}"][value="${value}"]`);
+        if (rb) rb.checked = true;
+    };
+    
+    setRadio('sex', i.sex);
+    setRadio('fix', i.fix);
+    setRadio('p_human', i.p_human);
+    setRadio('p_dog', i.p_dog);
+    setRadio('p_atk', i.p_atk);
+    setRadio('p_ill', i.p_ill);
+    
+    if (i.p_ill === '有') {
+        toggleIllDetail(true);
+        document.getElementById('ill_detail').value = i.ill_detail || '';
+    }
+
+    // 觸發一次欄位驗證顏色轉換
+    document.querySelectorAll('.form-input').forEach(el => {
+        if (el.onblur) el.onblur();
+    });
+}
+        // --- 刪除功能 ---
+async function deleteRecord(id, petName) {
+    if (!confirm(`確定要刪除寵物「${petName}」的簽署紀錄嗎？\n此動作無法還原！`)) return;
+
+    try {
+        const { error } = await client.from('contracts').delete().eq('id', id);
+        if (error) throw error;
+        alert("🗑️ 資料已成功刪除");
+        loadAdmin(); // 重新整理列表
+    } catch (err) {
+        alert("刪除失敗：" + err.message);
+    }
+}
+
+// --- 修改功能 ---
+async function editRecord(idx) {
+    const i = allRecords[idx];
+    const oldPrice = i.price;
+    const newPrice = prompt(`修改「${i.pet_name}」的服務金額\n目前金額：NT$ ${oldPrice.toLocaleString()}\n請輸入新金額：`, oldPrice);
+
+    // 檢查：取消、沒填、或填寫非數字則不處理
+    if (newPrice === null || newPrice.trim() === "" || isNaN(newPrice)) return;
+
+    const finalPrice = parseInt(newPrice);
+
+    try {
+        const { error } = await client
+            .from('contracts')
+            .update({ price: finalPrice }) // 只更新金額
+            .eq('id', i.id); // 確保對應正確的 ID
+
+        if (error) throw error;
+        
+        alert(`✅ 金額已成功修改為：NT$ ${finalPrice.toLocaleString()}`);
+        await loadAdmin(); // 重新讀取資料，讓表格顯示最新金額
+    } catch (err) {
+        console.error("Update Error:", err);
+        alert("修改失敗：" + err.message);
+    }
+}
+        const client = supabase.createClient('https://dkavdfardalijxkqcopi.supabase.co', 'sb_publishable_o7xY-xRVujJP6TFEgEbzIg_4UJlUCVX');
+        let canvas, ctx, drawing = false, hasSigned = false, allRecords = [];
+
+        function handleToggleLegal() {
+            const drawer = document.getElementById('legal-drawer');
+            const chevron = document.getElementById('legal-chevron');
+            if (drawer.style.maxHeight === '0px' || !drawer.style.maxHeight) {
+                drawer.style.maxHeight = drawer.scrollHeight + "px";
+                chevron.style.transform = "rotate(180deg)";
+            } else {
+                drawer.style.maxHeight = "0px";
+                chevron.style.transform = "rotate(0deg)";
+            }
+        }
+
+        function init() {
+
+            // 將 Base64 轉為 Blob 檔案格式
+function dataURLtoBlob(dataurl) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+    return new Blob([u8arr], {type:mime});
+}
+            // 在 init 函式中加入
+const today = new Date();
+const dateString = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+document.getElementById('display-today').innerText = dateString;
+
+            // 在 init() 函數內加入
+const phoneInput = document.getElementById('phone');
+phoneInput.addEventListener('blur', function() {
+    fetchHistoryByPhone(this.value.trim());
+});
+
+            canvas = document.getElementById('fs-canvas');
+            ctx = canvas.getContext('2d');
+            document.querySelectorAll('.num-only').forEach(el => { el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); }); });
+            document.getElementById('other_trig').onchange = (e) => document.getElementById('other_val').classList.toggle('hidden', !e.target.checked);
+            document.getElementById('chip_no').addEventListener('focus', () => {
+                document.getElementsByName('chip_status').forEach(r => r.checked = false);
+            });
+            if (sessionStorage.getItem('isAdmin') === 'true') { showAdminView(); }
+        }
+
+        function openFsSig() {
+            document.getElementById('sig-fullscreen-modal').style.display = 'flex';
+            resizeFsCanvas();
+            const getPointerPos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            };
+            const start = (e) => { drawing = true; hasSigned = true; ctx.beginPath(); const p = getPointerPos(e); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+            const move = (e) => { if(!drawing) return; const p = getPointerPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+            const stop = () => { drawing = false; };
+            canvas.onmousedown = start; canvas.onmousemove = move; window.onmouseup = stop;
+            canvas.ontouchstart = start; canvas.ontouchmove = move; window.ontouchend = stop;
+        }
+
+        function resizeFsCanvas() {
+            const ratio = window.devicePixelRatio || 1;
+            canvas.width = canvas.parentElement.clientWidth * ratio;
+            canvas.height = canvas.parentElement.clientHeight * ratio;
+            ctx.scale(ratio, ratio);
+            ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#1E293B';
+        }
+
+        function clearFsCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); hasSigned = false; }
+
+        function closeFsSig(save) {
+            if (save) {
+                if (!hasSigned) { alert("請簽名後再點選完成"); return; }
+                const imgData = canvas.toDataURL("image/png");
+                document.getElementById('sig-preview-img').src = imgData;
+                document.getElementById('sig-preview-img').style.display = 'block';
+                document.getElementById('sig-hint-text').style.display = 'none';
+            }
+            document.getElementById('sig-fullscreen-modal').style.display = 'none';
+        }
+
+        function clearSig() {
+            document.getElementById('sig-preview-img').src = "";
+            document.getElementById('sig-preview-img').style.display = 'none';
+            document.getElementById('sig-hint-text').style.display = 'flex';
+            hasSigned = false;
+        }
+
+        function toggleChipStatus(type) {
+            const c = document.getElementById('chip_no');
+            if(type === 'none') { c.value = "無晶片"; c.disabled = true; } 
+            else if (type === 'unknown') { c.value = "有晶片（號碼不詳）"; c.disabled = true; }
+            c.classList.remove('input-invalid', 'input-valid');
+        }
+
+        document.getElementById('chip_no').addEventListener('click', function() {
+            if(this.disabled) { this.disabled = false; this.value = ""; }
+        });
+
+        function validateInput(el, type) {
+            const val = el.value.trim();
+            if (val === "無晶片" || val === "有晶片（號碼不詳）") { el.classList.add('input-valid'); return; }
+            if (val === "") { el.classList.remove('input-valid', 'input-invalid'); return; }
+            let isValid = false;
+            switch(type) {
+                case 'email': isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); break;
+                case 'mobile': isValid = /^09\d{8}$/.test(val); break;
+                case 'phone': isValid = /^(\d{2,4}-?\d{3,4}-?\d{3,4})|\d{7,10}$/.test(val); break;
+                case 'chip': isValid = (val.length === 10 || val.length === 15); break;
+                case 'id': isValid = /^[A-Z][12]\d{8}$/.test(val); break;
+            }
+            el.classList.toggle('input-valid', isValid); el.classList.toggle('input-invalid', !isValid);
+        }
+
+        function toggleIllDetail(show) { document.getElementById('ill_detail_container').classList.toggle('open', show); }
+
+async function handleSave() {
+    const form = document.getElementById('contract-form');
+    const btn = document.getElementById('btn');
+    const priceInput = document.getElementById('price');
+    const priceVal = parseInt(priceInput.value);
+    const signatureCanvas = document.getElementById('fs-canvas');
+
+    // 1. 驗證邏輯
+    if (isNaN(priceVal) || priceVal <= 0) {
+        alert("⚠️ 請輸入有效的服務金額！");
+        priceInput.focus();
+        return; 
+    }
+    if (document.querySelectorAll('.input-invalid').length > 0 || !form.checkValidity() || !hasSigned) {
+        alert("⚠️ 請檢查格式是否正確、勾選同意並完成簽名。");
+        return; 
+    }
+
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>正在處理簽名並寄送...';
+
+    try {
+        // --- 2. 簽名圖片處理 ---
+        const compressCanvas = document.createElement('canvas');
+        const cCtx = compressCanvas.getContext('2d');
+        const targetWidth = 500; 
+        const scale = targetWidth / signatureCanvas.width;
+        compressCanvas.width = targetWidth;
+        compressCanvas.height = signatureCanvas.height * scale;
+        cCtx.fillStyle = "#FFFFFF";
+        cCtx.fillRect(0, 0, compressCanvas.width, compressCanvas.height);
+        cCtx.drawImage(signatureCanvas, 0, 0, compressCanvas.width, compressCanvas.height);
+        const finalSigData = compressCanvas.toDataURL("image/jpeg", 0.7);
+
+        // --- 3. 上傳到 Supabase ---
+        const b64Data = finalSigData.split(',')[1];
+        const byteCharacters = atob(b64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {type: 'image/jpeg'});
+        const fileName = `sig_${Date.now()}.jpg`;
+        await client.storage.from('signatures').upload(fileName, blob, { contentType: 'image/jpeg' });
+        const { data: { publicUrl } } = client.storage.from('signatures').getPublicUrl(fileName);
+
+        // --- 4. 準備資料數據 ---
+        const createdAtTime = new Date().toLocaleString('zh-TW');
+        const data = {
+            owner_name: document.getElementById('owner_name').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            id_number: document.getElementById('id_number').value.trim().toUpperCase(),
+            phone: document.getElementById('phone').value.trim(),
+            address: document.getElementById('address').value.trim(),
+            emergency_name: document.getElementById('emergency_name').value.trim(),
+            emergency_tel: document.getElementById('emergency_tel').value.trim(),
+            pet_name: document.getElementById('pet_name').value.trim(),
+            breed: document.getElementById('breed').value.trim() || "未填寫",
+            color: document.getElementById('color').value.trim() || "未填寫",
+            chip_no: document.getElementById('chip_no').value.trim(),
+            clinic: document.getElementById('clinic').value.trim() || "特約醫院",
+            sex: document.querySelector('input[name="sex"]:checked')?.value || "未填",
+            fix: document.querySelector('input[name="fix"]:checked')?.value || "未填",
+            p_human: document.querySelector('input[name="p_human"]:checked')?.value || "未填",
+            p_dog: document.querySelector('input[name="p_dog"]:checked')?.value || "未填",
+            p_atk: document.querySelector('input[name="p_atk"]:checked')?.value || "未填",
+            p_ill: document.querySelector('input[name="p_ill"]:checked')?.value || "未填",
+            ill_detail: document.getElementById('ill_detail').value.trim() || "無",
+            services: Array.from(document.querySelectorAll('input[name="service"]:checked')).map(el => el.value).join(', ') || "未勾選",
+            price: priceVal,
+            pickup_time: document.getElementById('pickup_time').value || "再行通知",
+            signature_data: publicUrl,
+            created_at: new Date().toISOString()
+        };
+
+        // 存入數據庫
+        const { error: supabaseError } = await client.from('contracts').insert([data]);
+        if (supabaseError) throw supabaseError;
+
+// --- 5. 發送 Email ---
+await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': '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'  // 改成這個標籤
+    },
+                body: JSON.stringify({
+                sender: { name: "可樂果寵物生活館", email: "zs871218@gmail.com" },
+                to: [{ email: data.email, name: data.owner_name }],
+                subject: `【可樂果寵物生活館】美容契約副本 - ${data.pet_name}`,
+                htmlContent: `
+<!DOCTYPE html>
+<html lang="zh-TW">
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: sans-serif;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <div style="color: #334155; max-width: 600px; width: 95%; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; background-color: #ffffff; line-height: 1.6; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                    <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 35px 30px; text-align: center; color: #ffffff;">
+                        <h1 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 3px;">可樂果寵物生活館</h1>
+                        <p style="margin: 8px 0 0 0; font-size: 11px; opacity: 0.8; text-transform: uppercase;">寵物美容定型化契約 (副本)</p>
+                        <div style="margin-top: 15px; display: inline-block; background: rgba(0,0,0,0.1); padding: 5px 15px; border-radius: 99px; font-size: 11px;">存檔時間：${createdAtTime}</div>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p style="font-size: 15px; margin-top: 0;">親愛的 <strong>${data.owner_name}</strong> 您好：</p>
+                        <p style="font-size: 14px; color: #64748b;">以下是您在網頁填寫的契約詳細資料與約定條款：</p>
+                        <div style="margin-top: 25px;">
+                            <div style="font-size: 13px; font-weight: bold; color: #f97316; border-left: 4px solid #f97316; padding-left: 10px; margin-bottom: 12px;">一、 飼主基本資料</div>
+                            <table width="100%" border="0" style="font-size: 13px; border-collapse: collapse;">
+                                <tr><td width="90" style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">飼主姓名</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.owner_name}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">身分證號</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.id_number}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">聯絡手機</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.phone}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">通訊地址</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.address}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">緊急聯絡</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.emergency_name} / ${data.emergency_tel}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">指定就醫</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.clinic}</td></tr>
+                            </table>
+                        </div>
+                        <div style="margin-top: 30px;">
+                            <div style="font-size: 13px; font-weight: bold; color: #f97316; border-left: 4px solid #f97316; padding-left: 10px; margin-bottom: 12px;">二、 寵物詳細資料</div>
+                            <div style="background-color: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid #f1f5f9;">
+                                <table width="100%" border="0" style="font-size: 13px;">
+                                    <tr><td width="50%" style="padding-bottom: 8px;"><strong>名字：</strong>${data.pet_name}</td><td width="50%" style="padding-bottom: 8px;"><strong>品種：</strong>${data.breed} / ${data.color}</td></tr>
+                                    <tr><td style="padding-bottom: 8px;"><strong>晶片號碼：</strong>${data.chip_no}</td><td style="padding-bottom: 8px;"><strong>性別/結紮：</strong>${data.sex} / ${data.fix}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div style="margin-top: 30px; padding: 20px; background-color: #f1f5f9; border-radius: 12px; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 13px; font-weight: bold; color: #475569; margin-bottom: 12px;">四、 簽署聲明與法律約定</div>
+                            <div style="font-size: 12px; color: #64748b; line-height: 1.8;">
+                                <div style="margin-bottom: 8px;"><strong>第一條 (契約目的)：</strong> 本服務為犬貓美容，不涉及醫療行為。乙方環境維持安全、通風、清潔。</div>
+                                <div style="margin-bottom: 8px;"><strong>第五條 (健康告知)：</strong> 甲方應誠實告知寵物病史與攻擊性。若因隱瞞導致意外，乙方不負損害賠償責任。</div>
+                                <div style="margin-bottom: 8px;"><strong>第九條 (退費規定)：</strong> 包月服務終止時，預收總額扣除「已使用次數 × 單次原價」後退還餘額，乙方不額外收取解約手續費。</div>
+                                <div style="margin-bottom: 8px;"><strong>第十二條 (逾時接回)：</strong> 於約定時間逾時 30 分鐘以上，依照價目表公告之安親費額外收費。</div>
+                                <div style="margin-bottom: 8px;"><strong>第十五條 (履約保障)：</strong> 預收費用累計金額新台幣一萬元以下，依法免提供履約保障。</div>
+                                <div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 10px; color: #475569;">
+                                    ● 經甲乙雙方合意約定，由甲方即時閱覽理解本契約內容並簽署。<br>
+                                    ● 本人已確認預計接回時間與服務金額無誤，並同意上述條款。<br>
+                                    <span style="font-style: italic; font-size: 11px;">※ 其餘細節依行政院農委會定型化契約範本辦理。</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 40px; border-top: 2px solid #f8fafc; padding-top: 25px;">
+                            <table width="100%" border="0" style="font-size: 13px;">
+                                <tr>
+                                    <td width="55%" valign="top">
+                                        <p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 11px; font-weight: bold;">甲方（飼主）簽名處</p>
+                                        <div style="background-color: #ffffff; border: 1px dashed #e2e8f0; border-radius: 8px; padding: 5px; display: inline-block;">
+                                            <img src="${publicUrl}" width="160" style="display: block; border: 0;" alt="甲方簽署">
+                                        </div>
+                                    </td>
+                                    <td width="45%" style="padding-left: 20px;" valign="top">
+                                        <p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 11px; font-weight: bold;">乙方（可樂果寵物生活館）</p>
+                                        <p style="margin: 0; font-weight: bold; color: #334155;">負責人：邱駿侖</p>
+                                        <p style="margin: 2px 0; font-size: 11px; color: #64748b;">電話：06-358 2451</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`
+            })
+        });
+
+        alert("✨ 簽署完成，已將副本寄送至您的信箱！");
+        location.reload();
+
+    } catch (err) {
+        console.error("提交錯誤:", err);
+        alert("失敗: " + (err.message || "未知錯誤"));
+        btn.disabled = false;
+        btn.innerHTML = "確認提交約定單";
+    }
+}
+        function checkAdmin() {
+            if (sessionStorage.getItem('isAdmin') === 'true') { showAdminView(); return; }
+            const userInput = prompt("管理金鑰?");
+            if (userInput && btoa(userInput.trim()) === "ODg4OA==") {
+                sessionStorage.setItem('isAdmin', 'true'); showAdminView();
+            }
+        }
+        function showAdminView() {
+            document.getElementById('clientView').style.display='none'; 
+            document.getElementById('adminView').style.display='block'; loadAdmin();
+        }
+        async function loadAdmin() {
+            const { data, error } = await client.from('contracts').select('*').order('created_at', { ascending: false });
+            if (data) { allRecords = data; renderAdminList(data); }
+        }
+function renderAdminList(list) {
+    const tbody = document.getElementById('adminList');
+    tbody.innerHTML = list.map((i, idx) => {
+        // 解析並格式化日期時間
+        const signedTime = i.created_at ? new Date(i.created_at).toLocaleString('zh-TW', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }) : '無日期';
+
+        return `
+        <tr class="hover:bg-white/5 transition-colors">
+            <td class="px-8 py-8 font-bold text-sm">
+                ${i.pet_name}<br>
+                <span class="text-orange-500 text-[10px] opacity-70">${i.owner_name}</span><br>
+                <span class="text-slate-500 text-[8px] font-normal ">${signedTime}</span>
+            </td>
+            <td class="px-8 py-8"><span class="text-xs opacity-60">${i.services}</span></td>
+            <td class="px-8 py-8 text-center text-sm font-bold text-blue-400">${i.pickup_time}</td>
+            <td class="px-8 py-8 text-center font-black text-orange-500 text-sm">NT$ ${Number(i.price).toLocaleString()}</td>
+            <td class="px-8 py-8 text-center">
+                <img src="${i.signature_data}" class="h-10 mx-auto bg-white rounded p-1 shadow-sm">
+            </td>
+            <td class="px-8 py-8 text-right">
+                <div class="flex justify-end gap-2">
+                    <button onclick="showDetail(${idx})" class="text-orange-500 font-bold border border-orange-500/30 px-3 py-2 rounded-lg text-[10px] hover:bg-orange-500/10 transition-all">詳情</button>
+                    <button onclick="editRecord(${idx})" class="text-blue-400 font-bold border border-blue-400/30 px-3 py-2 rounded-lg text-[10px] hover:bg-blue-400/10 transition-all">改金額</button>
+                    <button onclick="deleteRecord('${i.id}', '${i.pet_name}')" class="text-red-400 font-bold border border-red-400/30 px-3 py-2 rounded-lg text-[10px] hover:bg-red-400/10 transition-all">刪除</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+        function logoutAdmin() { sessionStorage.removeItem('isAdmin'); location.reload(); }
+        function filterRecords(val) {
+            const s = val.toLowerCase();
+            const f = allRecords.filter(i => i.pet_name.toLowerCase().includes(s) || i.owner_name.toLowerCase().includes(s));
+            renderAdminList(f);
+        }
+function showDetail(idx) {
+    const i = allRecords[idx];
+    
+    // 1. 格式化簽署日期與時間 (包含 年/月/日 時:分:秒)
+    const fullTime = i.created_at ? new Date(i.created_at).toLocaleString('zh-TW', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }) : '無記錄';
+
+    document.getElementById('detailContent').innerHTML = `
+        <div class="space-y-6 text-sm text-slate-800 pb-10">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-100 p-4 rounded-2xl border border-slate-200 gap-2">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">系統紀錄編號</span>
+                    <span class="text-xs font-mono text-slate-600">ID: ${i.id}</span>
+                </div>
+                <div class="text-left sm:text-right">
+                    <span class="text-[10px] font-bold text-orange-400 uppercase tracking-widest block">數位簽署完成時間</span>
+                    <span class="text-sm font-black text-slate-700"><i class="far fa-calendar-check mr-1 text-orange-500"></i> ${fullTime}</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <p class="text-orange-600 font-black border-b border-orange-100 pb-2 mb-4 uppercase text-xs tracking-widest">一、 飼主完整資料</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <p><b>飼主姓名：</b> ${i.owner_name}</p><p><b>身分證號：</b> ${i.id_number}</p>
+                    <p><b>聯絡手機：</b> ${i.phone}</p><p><b>電子郵件：</b> ${i.email}</p>
+                    <p class="sm:col-span-2"><b>通訊地址：</b> ${i.address}</p>
+                    <p><b>緊急聯絡人：</b> ${i.emergency_name}</p><p><b>緊急電話：</b> ${i.emergency_tel || '未填寫'}</p>
+                    <p class="sm:col-span-2"><b>指定就醫：</b> ${i.clinic || '無'}</p>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <p class="text-orange-600 font-black border-b border-orange-100 pb-2 mb-4 uppercase text-xs tracking-widest">二、 寵物完整資料</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <p><b>寵物名字：</b> ${i.pet_name}</p><p><b>品種花色：</b> ${i.breed} / ${i.color}</p>
+                    <p><b>性別：</b> ${i.sex}</p><p><b>結紮：</b> ${i.fix}</p>
+                    <p class="sm:col-span-2"><b>晶片號碼：</b> ${i.chip_no}</p>
+                    <p class="sm:col-span-2"><b>性格特徵：</b> 親人(${i.p_human}) · 親狗(${i.p_dog}) · 具攻擊性(${i.p_atk})</p>
+                    <p class="sm:col-span-2"><b>過往病史：</b> ${i.p_ill === '有' ? `<span class="text-red-500 font-bold">${i.ill_detail}</span>` : '無'}</p>
+                </div>
+            </div>
+
+            <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100">
+                <p class="text-orange-600 font-black border-b border-orange-200 pb-2 mb-4 uppercase text-xs tracking-widest">三、 本次服務約定</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <p class="sm:col-span-2"><b>服務項目：</b> <span class="text-orange-700 font-bold">${i.services}</span></p>
+                    <p><b>預計接回：</b> <span class="text-blue-600 font-bold">${i.pickup_time}</span></p>
+                    <p><b>本次費用：</b> <span class="text-orange-600 font-black">NT$ ${Number(i.price).toLocaleString()}</span></p>
+                </div>
+            </div>
+
+            <div class="text-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-white">
+                <p class="text-[10px] text-slate-400 mb-2 uppercase tracking-widest">甲方簽署樣本</p>
+                <img src="${i.signature_data}" class="max-h-48 mx-auto" alt="顧客簽名">
+                <p class="text-[9px] text-slate-400 mt-2 italic">此電子簽名於系統時間 ${fullTime} 紀錄存檔</p>
+            </div>
+        </div>`;
+    document.getElementById('detailModal').style.display = 'flex';
+}
+        window.onload = init;
+    </script>
+</body>
+</html>
