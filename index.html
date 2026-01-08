@@ -616,18 +616,33 @@ async function handleSave() {
         const { error: supabaseError } = await client.from('contracts').insert([data]);
         if (supabaseError) throw supabaseError;
 
-// --- 5. 發送 Email ---
-await fetch('https://api.brevo.com/v3/smtp/email', {
+// --- 修改後的發送邏輯 ---
+await fetch('/api/send-email', {
     method: 'POST',
     headers: {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'api-key': '__BREVO_KEY__'  // 改成這個標籤
+        'content-type': 'application/json'
     },
+    body: JSON.stringify({
+        // 1. 寄件者 (你在 Brevo 驗證過的信箱)
+        sender: { name: "可樂果寵物生活館", email: "zs871218@gmail.com" },
+
+        // 2. 收件者 (這裡才是真正從表單抓資料的地方)
+        to: [{ 
+            email: data.email,      // 抓客戶填的 email
+            name: data.owner_name   // 抓客戶填的姓名
+        }],
+
+        // 3. 主旨
+        subject: `【可樂果寵物生活館】寵物美容契約副本 - ${data.pet_name}`,
+
+        // 4. 郵件內容 (你下面那一長串 HTML)
+        htmlContent: `<!DOCTYPE html>...` 
+    })
+});
                 body: JSON.stringify({
                 sender: { name: "可樂果寵物生活館", email: "zs871218@gmail.com" },
                 to: [{ email: data.email, name: data.owner_name }],
-                subject: `【可樂果寵物生活館】美容契約副本 - ${data.pet_name}`,
+                subject: `【可樂果寵物生活館】寵物美容契約副本 - ${data.pet_name}`,
                 htmlContent: `
 <!DOCTYPE html>
 <html lang="zh-TW">
