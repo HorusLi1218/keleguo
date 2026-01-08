@@ -616,15 +616,15 @@ async function handleSave() {
         const { error: supabaseError } = await client.from('contracts').insert([data]);
         if (supabaseError) throw supabaseError;
 
-        // --- 5. 發送 Email (採用您的完整模板與內文) ---
-        await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: {
-                'accept': 'application/json',
-                'content-type': 'application/json',
-                'api-key': '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'
-            },
-            body: JSON.stringify({
+// --- 5. 發送 Email ---
+await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': '__BREVO_KEY__'  // 改成這個標籤
+    },
+                body: JSON.stringify({
                 sender: { name: "可樂果寵物生活館", email: "zs871218@gmail.com" },
                 to: [{ email: data.email, name: data.owner_name }],
                 subject: `【可樂果寵物生活館】美容契約副本 - ${data.pet_name}`,
