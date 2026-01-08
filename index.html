@@ -7,7 +7,6 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -423,8 +422,6 @@ async function editRecord(idx) {
     }
 }
         const client = supabase.createClient('https://dkavdfardalijxkqcopi.supabase.co', 'sb_publishable_o7xY-xRVujJP6TFEgEbzIg_4UJlUCVX');
-        (function(){ emailjs.init("umj1-QTDfTydCGAjx"); })();
-
         let canvas, ctx, drawing = false, hasSigned = false, allRecords = [];
 
         function handleToggleLegal() {
@@ -441,6 +438,13 @@ async function editRecord(idx) {
 
         function init() {
 
+            // 將 Base64 轉為 Blob 檔案格式
+function dataURLtoBlob(dataurl) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+    return new Blob([u8arr], {type:mime});
+}
             // 在 init 函式中加入
 const today = new Date();
 const dateString = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
@@ -539,11 +543,9 @@ async function handleSave() {
     const btn = document.getElementById('btn');
     const priceInput = document.getElementById('price');
     const priceVal = parseInt(priceInput.value);
-    
-    // 取得原始簽名畫布
     const signatureCanvas = document.getElementById('fs-canvas');
 
-    // 1. 基本驗證
+    // 1. 驗證邏輯
     if (isNaN(priceVal) || priceVal <= 0) {
         alert("⚠️ 請輸入有效的服務金額！");
         priceInput.focus();
@@ -555,80 +557,165 @@ async function handleSave() {
     }
 
     btn.disabled = true; 
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>正在提交...';
-
-    // --- 【關鍵優化：壓縮簽名圖片】 ---
-    // 建立一個緩衝畫布來調整大小
-    const compressCanvas = document.createElement('canvas');
-    const cCtx = compressCanvas.getContext('2d');
-    
-    // 固定寬度為 400px，高度依比例縮放，這能大幅減少數據量
-    const maxWidth = 400;
-    const scale = maxWidth / signatureCanvas.width;
-    compressCanvas.width = maxWidth;
-    compressCanvas.height = signatureCanvas.height * scale;
-
-    // 填寫白色背景（必做：否則 JPEG 會變黑色背景）
-    cCtx.fillStyle = "#FFFFFF";
-    cCtx.fillRect(0, 0, compressCanvas.width, compressCanvas.height);
-    
-    // 繪製壓縮後的圖像
-    cCtx.drawImage(signatureCanvas, 0, 0, compressCanvas.width, compressCanvas.height);
-    
-    // 輸出 JPEG，品質設定為 0.5 (體積會非常小，且簽名依然清晰)
-    const finalSigData = compressCanvas.toDataURL("image/jpeg", 0.5);
-
-    const data = {
-        owner_name: document.getElementById('owner_name').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        id_number: document.getElementById('id_number').value.trim().toUpperCase(),
-        phone: document.getElementById('phone').value.trim(),
-        address: document.getElementById('address').value.trim(),
-        emergency_name: document.getElementById('emergency_name').value.trim(),
-        emergency_tel: document.getElementById('emergency_tel').value.trim(),
-        pet_name: document.getElementById('pet_name').value.trim(),
-        breed: document.getElementById('breed').value.trim() || "未填寫",
-        color: document.getElementById('color').value.trim() || "未填寫",
-        chip_no: document.getElementById('chip_no').value.trim(),
-        clinic: document.getElementById('clinic').value.trim() || "無",
-        sex: document.querySelector('input[name="sex"]:checked')?.value,
-        fix: document.querySelector('input[name="fix"]:checked')?.value,
-        p_human: document.querySelector('input[name="p_human"]:checked')?.value,
-        p_dog: document.querySelector('input[name="p_dog"]:checked')?.value,
-        p_atk: document.querySelector('input[name="p_atk"]:checked')?.value,
-        p_ill: document.querySelector('input[name="p_ill"]:checked')?.value,
-        ill_detail: document.getElementById('ill_detail').value.trim() || "無",
-        services: Array.from(document.querySelectorAll('input[name="service"]:checked')).map(el => el.value).join(', ') || "未勾選",
-        price: priceVal,
-        pickup_time: document.getElementById('pickup_time').value || "LINE通知",
-        signature_data: finalSigData, // 使用壓縮過的資料存入資料庫
-        created_at: new Date().toISOString()
-    };
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>正在處理簽名並寄送...';
 
     try {
-        // 第一步：存入 Supabase
+        // --- 2. 簽名圖片處理 ---
+        const compressCanvas = document.createElement('canvas');
+        const cCtx = compressCanvas.getContext('2d');
+        const targetWidth = 500; 
+        const scale = targetWidth / signatureCanvas.width;
+        compressCanvas.width = targetWidth;
+        compressCanvas.height = signatureCanvas.height * scale;
+        cCtx.fillStyle = "#FFFFFF";
+        cCtx.fillRect(0, 0, compressCanvas.width, compressCanvas.height);
+        cCtx.drawImage(signatureCanvas, 0, 0, compressCanvas.width, compressCanvas.height);
+        const finalSigData = compressCanvas.toDataURL("image/jpeg", 0.7);
+
+        // --- 3. 上傳到 Supabase ---
+        const b64Data = finalSigData.split(',')[1];
+        const byteCharacters = atob(b64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {type: 'image/jpeg'});
+        const fileName = `sig_${Date.now()}.jpg`;
+        await client.storage.from('signatures').upload(fileName, blob, { contentType: 'image/jpeg' });
+        const { data: { publicUrl } } = client.storage.from('signatures').getPublicUrl(fileName);
+
+        // --- 4. 準備資料數據 ---
+        const createdAtTime = new Date().toLocaleString('zh-TW');
+        const data = {
+            owner_name: document.getElementById('owner_name').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            id_number: document.getElementById('id_number').value.trim().toUpperCase(),
+            phone: document.getElementById('phone').value.trim(),
+            address: document.getElementById('address').value.trim(),
+            emergency_name: document.getElementById('emergency_name').value.trim(),
+            emergency_tel: document.getElementById('emergency_tel').value.trim(),
+            pet_name: document.getElementById('pet_name').value.trim(),
+            breed: document.getElementById('breed').value.trim() || "未填寫",
+            color: document.getElementById('color').value.trim() || "未填寫",
+            chip_no: document.getElementById('chip_no').value.trim(),
+            clinic: document.getElementById('clinic').value.trim() || "特約醫院",
+            sex: document.querySelector('input[name="sex"]:checked')?.value || "未填",
+            fix: document.querySelector('input[name="fix"]:checked')?.value || "未填",
+            p_human: document.querySelector('input[name="p_human"]:checked')?.value || "未填",
+            p_dog: document.querySelector('input[name="p_dog"]:checked')?.value || "未填",
+            p_atk: document.querySelector('input[name="p_atk"]:checked')?.value || "未填",
+            p_ill: document.querySelector('input[name="p_ill"]:checked')?.value || "未填",
+            ill_detail: document.getElementById('ill_detail').value.trim() || "無",
+            services: Array.from(document.querySelectorAll('input[name="service"]:checked')).map(el => el.value).join(', ') || "未勾選",
+            price: priceVal,
+            pickup_time: document.getElementById('pickup_time').value || "再行通知",
+            signature_data: publicUrl,
+            created_at: new Date().toISOString()
+        };
+
+        // 存入數據庫
         const { error: supabaseError } = await client.from('contracts').insert([data]);
         if (supabaseError) throw supabaseError;
 
-        // 第二步：寄送 EmailJS (使用同樣壓縮過的 finalSigData)
-        await emailjs.send("service_qwect9i", "template_mrp0x8n", { 
-            ...data, 
-            signature_data: finalSigData, 
-            price: Number(data.price).toLocaleString(),
-            created_at: new Date().toLocaleString() 
+        // --- 5. 發送 Email (採用您的完整模板與內文) ---
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'content-type': 'application/json',
+                'api-key': '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'
+            },
+            body: JSON.stringify({
+                sender: { name: "可樂果寵物生活館", email: "zs871218@gmail.com" },
+                to: [{ email: data.email, name: data.owner_name }],
+                subject: `【可樂果寵物生活館】美容契約副本 - ${data.pet_name}`,
+                htmlContent: `
+<!DOCTYPE html>
+<html lang="zh-TW">
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: sans-serif;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <div style="color: #334155; max-width: 600px; width: 95%; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; background-color: #ffffff; line-height: 1.6; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                    <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 35px 30px; text-align: center; color: #ffffff;">
+                        <h1 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 3px;">可樂果寵物生活館</h1>
+                        <p style="margin: 8px 0 0 0; font-size: 11px; opacity: 0.8; text-transform: uppercase;">寵物美容定型化契約 (副本)</p>
+                        <div style="margin-top: 15px; display: inline-block; background: rgba(0,0,0,0.1); padding: 5px 15px; border-radius: 99px; font-size: 11px;">存檔時間：${createdAtTime}</div>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p style="font-size: 15px; margin-top: 0;">親愛的 <strong>${data.owner_name}</strong> 您好：</p>
+                        <p style="font-size: 14px; color: #64748b;">以下是您在網頁填寫的契約詳細資料與約定條款：</p>
+                        <div style="margin-top: 25px;">
+                            <div style="font-size: 13px; font-weight: bold; color: #f97316; border-left: 4px solid #f97316; padding-left: 10px; margin-bottom: 12px;">一、 飼主基本資料</div>
+                            <table width="100%" border="0" style="font-size: 13px; border-collapse: collapse;">
+                                <tr><td width="90" style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">飼主姓名</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.owner_name}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">身分證號</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.id_number}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">聯絡手機</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.phone}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">通訊地址</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.address}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">緊急聯絡</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.emergency_name} / ${data.emergency_tel}</td></tr>
+                                <tr><td style="padding: 8px 0; color: #94a3b8; border-bottom: 1px solid #f8fafc;">指定就醫</td><td style="padding: 8px 0; color: #334155; border-bottom: 1px solid #f8fafc;">${data.clinic}</td></tr>
+                            </table>
+                        </div>
+                        <div style="margin-top: 30px;">
+                            <div style="font-size: 13px; font-weight: bold; color: #f97316; border-left: 4px solid #f97316; padding-left: 10px; margin-bottom: 12px;">二、 寵物詳細資料</div>
+                            <div style="background-color: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid #f1f5f9;">
+                                <table width="100%" border="0" style="font-size: 13px;">
+                                    <tr><td width="50%" style="padding-bottom: 8px;"><strong>名字：</strong>${data.pet_name}</td><td width="50%" style="padding-bottom: 8px;"><strong>品種：</strong>${data.breed} / ${data.color}</td></tr>
+                                    <tr><td style="padding-bottom: 8px;"><strong>晶片號碼：</strong>${data.chip_no}</td><td style="padding-bottom: 8px;"><strong>性別/結紮：</strong>${data.sex} / ${data.fix}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div style="margin-top: 30px; padding: 20px; background-color: #f1f5f9; border-radius: 12px; border: 1px solid #e2e8f0;">
+                            <div style="font-size: 13px; font-weight: bold; color: #475569; margin-bottom: 12px;">四、 簽署聲明與法律約定</div>
+                            <div style="font-size: 12px; color: #64748b; line-height: 1.8;">
+                                <div style="margin-bottom: 8px;"><strong>第一條 (契約目的)：</strong> 本服務為犬貓美容，不涉及醫療行為。乙方環境維持安全、通風、清潔。</div>
+                                <div style="margin-bottom: 8px;"><strong>第五條 (健康告知)：</strong> 甲方應誠實告知寵物病史與攻擊性。若因隱瞞導致意外，乙方不負損害賠償責任。</div>
+                                <div style="margin-bottom: 8px;"><strong>第九條 (退費規定)：</strong> 包月服務終止時，預收總額扣除「已使用次數 × 單次原價」後退還餘額，乙方不額外收取解約手續費。</div>
+                                <div style="margin-bottom: 8px;"><strong>第十二條 (逾時接回)：</strong> 於約定時間逾時 30 分鐘以上，依照價目表公告之安親費額外收費。</div>
+                                <div style="margin-bottom: 8px;"><strong>第十五條 (履約保障)：</strong> 預收費用累計金額新台幣一萬元以下，依法免提供履約保障。</div>
+                                <div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 10px; color: #475569;">
+                                    ● 經甲乙雙方合意約定，由甲方即時閱覽理解本契約內容並簽署。<br>
+                                    ● 本人已確認預計接回時間與服務金額無誤，並同意上述條款。<br>
+                                    <span style="font-style: italic; font-size: 11px;">※ 其餘細節依行政院農委會定型化契約範本辦理。</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 40px; border-top: 2px solid #f8fafc; padding-top: 25px;">
+                            <table width="100%" border="0" style="font-size: 13px;">
+                                <tr>
+                                    <td width="55%" valign="top">
+                                        <p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 11px; font-weight: bold;">甲方（飼主）簽名處</p>
+                                        <div style="background-color: #ffffff; border: 1px dashed #e2e8f0; border-radius: 8px; padding: 5px; display: inline-block;">
+                                            <img src="${publicUrl}" width="160" style="display: block; border: 0;" alt="甲方簽署">
+                                        </div>
+                                    </td>
+                                    <td width="45%" style="padding-left: 20px;" valign="top">
+                                        <p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 11px; font-weight: bold;">乙方（可樂果寵物生活館）</p>
+                                        <p style="margin: 0; font-weight: bold; color: #334155;">負責人：邱駿侖</p>
+                                        <p style="margin: 2px 0; font-size: 11px; color: #64748b;">電話：06-358 2451</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`
+            })
         });
 
-        alert("✨ 簽署完成，已將副本寄送至您填寫之電子信箱！");
+        alert("✨ 簽署完成，已將副本寄送至您的信箱！");
         location.reload();
+
     } catch (err) {
         console.error("提交錯誤:", err);
-        // 如果錯誤訊息包含 "Variables size limit"，代表圖片還是太大了
-        alert("儲存或寄送失敗: " + (err.text || err.message));
+        alert("失敗: " + (err.message || "未知錯誤"));
         btn.disabled = false;
-        btn.innerText = "確認提交約定單";
+        btn.innerHTML = "確認提交約定單";
     }
 }
-
         function checkAdmin() {
             if (sessionStorage.getItem('isAdmin') === 'true') { showAdminView(); return; }
             const userInput = prompt("管理金鑰?");
