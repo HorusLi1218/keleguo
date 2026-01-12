@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>可樂果寵物生活館 | 定型化契約簽署系統</title>
     
+    <!-- Favicon 設定 -->
+    <link rel="icon" type="image/png" href="/logo.png">
+    <link rel="apple-touch-icon" href="/logo.png">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -15,18 +19,107 @@
         .sig-wrapper { background: #f1f5f9 !important; border: 3px dashed #f97316 !important; transition: 0.3s; }
         .signature-hint { color: #f97316 !important; flex-direction: column; gap: 8px; }
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
-        :root { --brand-orange: #f97316; }
-        body { font-family: 'Noto Sans TC', sans-serif; background: #0F172A; color: #F1F5F9; min-height: 100vh; overscroll-behavior-y: none; }
+        
+        /* 深色/淺色模式變數系統 */
+        :root {
+            --brand-orange: #f97316;
+            --bg-primary: #0F172A;
+            --bg-secondary: rgba(30, 41, 59, 0.9);
+            --bg-nav: rgba(30, 41, 59, 0.9);
+            --text-primary: #F1F5F9;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
+        /* 淺色模式 */
+        [data-theme="light"] {
+            --bg-primary: #F8FAFC;
+            --bg-secondary: #FFFFFF;
+            --bg-nav: rgba(255, 255, 255, 0.95);
+            --text-primary: #1E293B;
+            --text-secondary: #475569;
+            --border-color: #E2E8F0;
+            --input-bg: #FFFFFF;
+            --input-border: #E2E8F0;
+            --card-bg: #FFFFFF;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background: var(--bg-primary); 
+            color: var(--text-primary); 
+            min-height: 100vh; 
+            overscroll-behavior-y: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
         .serif-title { font-family: 'Noto Serif TC', serif; }
-        .glass-card { backdrop-filter: blur(25px); background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 2rem; }
+        .glass-card { 
+            backdrop-filter: blur(25px); 
+            background: var(--card-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 2rem;
+            box-shadow: 0 4px 20px var(--shadow-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
         .input-group { display: flex; flex-direction: column; width: 100%; position: relative; }
-        .form-input { width: 100%; padding: 1rem 1.2rem; border-radius: 1rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); color: #FFF; outline: none; transition: 0.3s; font-size: 16px; }
-        .form-input:focus { border-color: var(--brand-orange); box-shadow: 0 0 15px rgba(249, 115, 22, 0.2); }
+        .form-input { 
+            width: 100%; 
+            padding: 1rem 1.2rem; 
+            border-radius: 1rem; 
+            background: var(--input-bg); 
+            border: 1px solid var(--input-border); 
+            color: var(--text-primary); 
+            outline: none; 
+            transition: all 0.3s ease; 
+            font-size: 16px;
+        }
+        .form-input:focus { 
+            border-color: var(--brand-orange); 
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.2); 
+        }
         input[type="time"] { color-scheme: dark; cursor: pointer; }
-        .input-valid { border-color: #22c55e !important; }
-        .input-invalid { border-color: #ef4444 !important; }
+        .input-valid { 
+            border-color: #22c55e !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
+            padding-right: 3rem !important;
+        }
+        .input-invalid { 
+            border-color: #ef4444 !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
+            padding-right: 3rem !important;
+            animation: shake 0.3s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
         .error-msg { font-size: 10px; color: #ef4444; height: 14px; margin-top: 4px; padding-left: 8px; opacity: 0; transition: 0.2s; }
         .input-invalid + .error-msg { opacity: 1; }
+        .success-msg { 
+            font-size: 11px; 
+            color: #22c55e; 
+            height: 18px; 
+            margin-top: 4px; 
+            padding-left: 8px; 
+            opacity: 0; 
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .input-valid ~ .success-msg { opacity: 1; }
         .pill-group input { display: none; }
         .pill-item { cursor: pointer; padding: 0.6rem 1rem; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: 0.3s; font-size: 0.85rem; color: rgba(255, 255, 255, 0.4); text-align: center; display: inline-flex; align-items: center; justify-content: center; }
         .pill-group input:checked + .pill-item { background: rgba(249, 115, 22, 0.2); border-color: #f97316; color: #f97316; font-weight: bold; }
@@ -38,9 +131,219 @@
         #sig-fullscreen-modal { display: none; position: fixed; inset: 0; background: #ffffff; z-index: 9999; flex-direction: column; }
         .fs-canvas-container { flex: 1; position: relative; background: #f8fafc; overflow: hidden; }
         #fs-canvas { width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-        .fs-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); color: #e2e8f0; font-size: 4rem; font-weight: 900; pointer-events: none; white-space: nowrap; opacity: 0.5; }
+        .fs-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e2e8f0; font-size: 2rem; font-weight: 900; pointer-events: none; text-align: center; opacity: 0.5; line-height: 1.5; }
         #adminView, #detailModal, .hidden { display: none; }
-        .section-header { font-size: 0.8rem; font-weight: 900; letter-spacing: 0.15em; color: var(--brand-orange); border-left: 4px solid var(--brand-orange); padding-left: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
+        .section-header { 
+            font-size: 0.8rem; 
+            font-weight: 900; 
+            letter-spacing: 0.15em; 
+            color: var(--brand-orange); 
+            border-left: 4px solid var(--brand-orange); 
+            padding-left: 1rem; 
+            margin-bottom: 1.5rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+        }
+        
+        /* 深色模式開關按鈕 */
+        #theme-toggle {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        #theme-toggle::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(249,115,22,0.3) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #theme-toggle:hover::before {
+            opacity: 1;
+        }
+        #theme-icon {
+            transition: transform 0.3s ease;
+        }
+        #theme-toggle:active #theme-icon {
+            transform: rotate(20deg) scale(0.9);
+        }
+        
+        /* 淺色模式特殊調整 */
+        [data-theme="light"] .sig-wrapper {
+            background: #F8FAFC !important;
+            border: 3px dashed #f97316 !important;
+        }
+        [data-theme="light"] .signature-hint {
+            color: #cbd5e1 !important;
+        }
+        [data-theme="light"] nav .glass-card {
+            background: var(--bg-nav);
+            border: 1px solid var(--border-color);
+        }
+        [data-theme="light"] nav .glass-card span {
+            color: var(--text-primary) !important;
+        }
+        [data-theme="light"] nav .glass-card button {
+            color: var(--text-secondary) !important;
+        }
+        
+        /* 淺色模式表格邊框修復 */
+        [data-theme="light"] #adminView table {
+            border: 1px solid #E2E8F0;
+        }
+        [data-theme="light"] #adminView thead tr {
+            border-bottom: 2px solid #E2E8F0 !important;
+        }
+        [data-theme="light"] #adminView tbody tr {
+            border-bottom: 1px solid #E2E8F0 !important;
+        }
+        [data-theme="light"] #adminView th,
+        [data-theme="light"] #adminView td {
+            border-right: 1px solid #F1F5F9;
+        }
+        [data-theme="light"] #adminView th:last-child,
+        [data-theme="light"] #adminView td:last-child {
+            border-right: none;
+        }
+        [data-theme="light"] #adminView .glass-card {
+            border: 1px solid #E2E8F0;
+        }
+        [data-theme="light"] #adminView .bg-white\/5 {
+            background-color: #F8FAFC !important;
+            border-color: #E2E8F0 !important;
+        }
+        [data-theme="light"] #adminSearch {
+            background-color: #F8FAFC !important;
+            border-color: #E2E8F0 !important;
+            color: #1E293B !important;
+        }
+        
+        /* 淺色模式表單元素優化 */
+        [data-theme="light"] .form-input {
+            background-color: #FFFFFF !important;
+            border: 1.5px solid #E2E8F0 !important;
+            color: #1E293B !important;
+        }
+        [data-theme="light"] .form-input:focus {
+            border-color: #f97316 !important;
+            background-color: #FFFBF5 !important;
+        }
+        [data-theme="light"] .form-input::placeholder {
+            color: #94A3B8 !important;
+        }
+        
+        /* 淺色模式 pill 按鈕優化 */
+        [data-theme="light"] .pill-item {
+            background-color: #F8FAFC !important;
+            border: 1.5px solid #E2E8F0 !important;
+            color: #64748B !important;
+        }
+        [data-theme="light"] .pill-group input:checked + .pill-item {
+            background-color: #FFF7ED !important;
+            border: 2px solid #f97316 !important;
+            color: #f97316 !important;
+        }
+        
+        /* 淺色模式卡片區域優化 */
+        [data-theme="light"] .bg-white\/5 {
+            background-color: #F8FAFC !important;
+            border: 1.5px solid #E2E8F0 !important;
+        }
+        [data-theme="light"] .border-white\/10,
+        [data-theme="light"] .border-white\/5 {
+            border-color: #E2E8F0 !important;
+        }
+        
+        /* 淺色模式文字顏色優化 */
+        [data-theme="light"] .text-white {
+            color: #1E293B !important;
+        }
+        [data-theme="light"] .text-slate-300 {
+            color: #475569 !important;
+        }
+        [data-theme="light"] .text-slate-400 {
+            color: #64748B !important;
+        }
+        [data-theme="light"] .text-slate-500 {
+            color: #64748B !important;
+        }
+        [data-theme="light"] .opacity-40 {
+            opacity: 0.6 !important;
+        }
+        [data-theme="light"] .opacity-70 {
+            opacity: 0.8 !important;
+        }
+        
+        /* 淺色模式時間與金額輸入框優化 */
+        [data-theme="light"] input[type="time"] {
+            color-scheme: light !important;
+            background-color: #FFFFFF !important;
+            border-color: #FED7AA !important;
+        }
+        [data-theme="light"] .bg-slate-950\/80 {
+            background-color: #FFFFFF !important;
+            border-color: #FED7AA !important;
+        }
+        [data-theme="light"] .border-orange-500\/30 {
+            border-color: #FED7AA !important;
+        }
+        
+        /* 淺色模式背景區塊優化 */
+        [data-theme="light"] .bg-white\/5.p-6,
+        [data-theme="light"] .bg-white\/5.p-5 {
+            background-color: #F8FAFC !important;
+        }
+        [data-theme="light"] .bg-orange-500\/10 {
+            background-color: #FFF7ED !important;
+        }
+        [data-theme="light"] .border-orange-500\/20 {
+            border-color: #FDBA74 !important;
+        }
+        
+        /* 淺色模式法律條款區域 */
+        [data-theme="light"] .bg-black\/40 {
+            background-color: #F8FAFC !important;
+        }
+        [data-theme="light"] .text-slate-400 {
+            color: #64748B !important;
+        }
+        [data-theme="light"] .border-orange-100 {
+            border-color: #FFEDD5 !important;
+        }
+        [data-theme="light"] .border-orange-500\/30 {
+            border-color: #FED7AA !important;
+        }
+        
+        /* 淺色模式按鈕優化 */
+        [data-theme="light"] #sig-fullscreen-modal .bg-slate-900 {
+            background-color: #F8FAFC !important;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        [data-theme="light"] #sig-fullscreen-modal .bg-slate-900 button {
+            color: #475569 !important;
+        }
+        [data-theme="light"] #sig-fullscreen-modal .bg-slate-100 {
+            background-color: #FFFFFF !important;
+            border-top: 1px solid #E2E8F0;
+        }
+        [data-theme="light"] #sig-fullscreen-modal .bg-slate-100 button {
+            color: #64748B !important;
+        }
+        [data-theme="light"] .bg-red-600\/80 {
+            background-color: #DC2626 !important;
+        }
+        [data-theme="light"] .bg-red-600\/80:hover {
+            background-color: #B91C1C !important;
+        }
+        [data-theme="light"] .bg-slate-700 {
+            background-color: #64748B !important;
+        }
+        [data-theme="light"] .bg-slate-700:hover {
+            background-color: #475569 !important;
+        }
+        
         .btn-submit { animation: pulse-orange 2s infinite; }
         @keyframes pulse-orange { 0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); } 70% { box-shadow: 0 0 0 12px rgba(249, 115, 22, 0); } 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); } }
         @media (max-width: 480px) { .section-header { font-size: 0.75rem; } .form-input { padding: 0.8rem 1rem; } }
@@ -54,7 +357,12 @@
                 <i class="fas fa-paw text-orange-500"></i>
                 <span class="text-sm md:text-lg font-black serif-title text-white tracking-wider">可樂果寵物生活館|定型化契約簽署</span>
             </div>
-            <button onclick="checkAdmin()" class="text-[10px] font-bold opacity-30 hover:opacity-100 tracking-widest uppercase text-white">© 2026</button>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleTheme()" id="theme-toggle" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center" title="切換深/淺色模式">
+                    <i id="theme-icon" class="fas fa-moon text-orange-500 text-lg"></i>
+                </button>
+                <button onclick="checkAdmin()" class="text-[10px] font-bold opacity-30 hover:opacity-100 tracking-widest uppercase text-white">© 2026</button>
+            </div>
         </div>
     </nav>
 
@@ -225,7 +533,7 @@
                     <p>預收費用累計金額新台幣一萬元以下，依法免提供履約保障。</p>
                 </section>
 
-                <p class="text-[10px] opacity-30 text-center pt-2 border-t border-white/5">其餘細節依行政院農委會定型化契約範本辦理</p>
+                <p class="text-[10px] text-center pt-2 border-t border-white/5" style="opacity: 0.3;">其餘細節依行政院農委會定型化契約範本辦理</p>
             </div>
         </div>
 
@@ -275,7 +583,10 @@
             <button onclick="closeFsSig(true)" class="bg-orange-500 px-6 py-2 rounded-full text-sm font-bold">完成</button>
         </div>
         <div class="fs-canvas-container">
-            <div class="fs-hint">請在此處簽名</div>
+                <div class="fs-hint">
+                    請在此處簽名<br>
+                    <span style="font-size: 1rem; font-weight: 400;">(建議您保持手機直立簽名即可，不需旋轉手機)</span>
+                </div>
             <canvas id="fs-canvas"></canvas>
         </div>
         <div class="p-4 bg-slate-100 flex justify-center">
@@ -436,25 +747,107 @@ async function editRecord(idx) {
             }
         }
 
+        // === 深色模式功能 ===
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon text-orange-500 text-lg';
+            } else {
+                icon.className = 'fas fa-sun text-orange-500 text-lg';
+            }
+        }
+
+        // === 即時驗證功能 ===
+        function setupLiveValidation() {
+            // 身分證字號 - 輸入滿 10 碼立即驗證
+            const idInput = document.getElementById('id_number');
+            idInput.addEventListener('input', function() {
+                if (this.value.length === 10) {
+                    validateInput(this, 'id');
+                }
+            });
+
+            // 手機號碼 - 輸入滿 10 碼立即驗證
+            const phoneInput = document.getElementById('phone');
+            phoneInput.addEventListener('input', function() {
+                if (this.value.length === 10) {
+                    validateInput(this, 'mobile');
+                }
+            });
+
+            // Email - 延遲驗證（避免每個字都驗證）
+            const emailInput = document.getElementById('email');
+            let emailTimeout;
+            emailInput.addEventListener('input', function() {
+                clearTimeout(emailTimeout);
+                emailTimeout = setTimeout(() => {
+                    if (this.value.length > 0) {
+                        validateInput(this, 'email');
+                    }
+                }, 500);
+            });
+
+            // 晶片號碼 - 輸入滿 10 或 15 碼立即驗證
+            const chipInput = document.getElementById('chip_no');
+            chipInput.addEventListener('input', function() {
+                if (this.value.length === 10 || this.value.length === 15) {
+                    validateInput(this, 'chip');
+                }
+            });
+
+            // 緊急電話 - 延遲驗證
+            const emergencyInput = document.getElementById('emergency_tel');
+            let emergencyTimeout;
+            emergencyInput.addEventListener('input', function() {
+                clearTimeout(emergencyTimeout);
+                emergencyTimeout = setTimeout(() => {
+                    if (this.value.length > 0) {
+                        validateInput(this, 'phone');
+                    }
+                }, 500);
+            });
+        }
+
         function init() {
+            // 初始化深色模式
+            initTheme();
+
+            // 初始化即時驗證
+            setupLiveValidation();
 
             // 將 Base64 轉為 Blob 檔案格式
-function dataURLtoBlob(dataurl) {
-    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
-        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-    while(n--){ u8arr[n] = bstr.charCodeAt(n); }
-    return new Blob([u8arr], {type:mime});
-}
-            // 在 init 函式中加入
-const today = new Date();
-const dateString = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
-document.getElementById('display-today').innerText = dateString;
+            function dataURLtoBlob(dataurl) {
+                var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                    bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+                while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+                return new Blob([u8arr], {type:mime});
+            }
 
-            // 在 init() 函數內加入
-const phoneInput = document.getElementById('phone');
-phoneInput.addEventListener('blur', function() {
-    fetchHistoryByPhone(this.value.trim());
-});
+            // 顯示今日日期
+            const today = new Date();
+            const dateString = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+            document.getElementById('display-today').innerText = dateString;
+
+            // 手機號碼歷史查詢
+            const phoneInput = document.getElementById('phone');
+            phoneInput.addEventListener('blur', function() {
+                fetchHistoryByPhone(this.value.trim());
+            });
 
             canvas = document.getElementById('fs-canvas');
             ctx = canvas.getContext('2d');
